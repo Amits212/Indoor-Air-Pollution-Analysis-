@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #333;
+        }
+        .container {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn {
+            margin-top: 20px;
+            font-size: 1.2em;
+            text-decoration: none;
+            color: #333;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 20px;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #f4f4f4;
+        }
+        .btn-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        .pollution-btn {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        .pollution-btn span {
+            margin-left: 10px;
+        }
+        .symbol {
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Building Details</h1>
+    <div class="container">
+        <div id="buildingDetails"></div>
+        <a href="building_analysis?name=" id="analysisLink" class="btn">View Analysis</a>
+        <button id="deleteButton" class="btn">Delete Building</button>
+        <div class="btn-container">
+            <button class="btn pollution-btn" id="increaseSmoke" data-type="people smoke">
+                <span class="symbol">🚬</span><span>Increase Smoking Consumption</span>
+            </button>
+            <button class="btn pollution-btn" id="increaseFactory" data-type="factory">
+                <span class="symbol">🏭</span><span>Factory Construction next to the Building</span>
+            </button>
+            <button class="btn pollution-btn" id="decreasePlant" data-type="Plant growth">
+                <span class="symbol">🌱</span><span>Grow Plant</span>
+            </button>
+            <button class="btn pollution-btn" id="decreaseWindows" data-type="Open windows">
+                <span class="symbol">🌬️</span><span>Open Windows</span>
+            </button>
+        </div>
+    </div>
+    <script>
+        const baseUrl = 'http://localhost:8000/api/buildings/';
+
+        async function fetchBuildingDetails() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const buildingName = urlParams.get('name');
+
+                const response = await fetch(`${baseUrl}${buildingName}`);
+                const building = await response.json();
+                const buildingDetailsDiv = document.getElementById('buildingDetails');
+                const analysisLink = document.getElementById('analysisLink');
+                const deleteButton = document.getElementById('deleteButton');
+                analysisLink.href += buildingName;
+
+                buildingDetailsDiv.innerHTML = `
+                    <h2>${building.name}</h2>
+                    <p>Floors: ${building.floors.length}</p>
+                    <p>Pollution: ${building.pollution_percentage}%</p>
+                `;
+
+                deleteButton.addEventListener('click', async () => {
+                    try {
+                        const deleteResponse = await fetch(`${baseUrl}${buildingName}`, {
+                            method: 'DELETE'
+                        });
+                        const deleteResult = await deleteResponse.json();
+                        alert(deleteResult.status);
+                        window.location.href = '/';
+                    } catch (error) {
+                        console.error('Failed to delete building:', error);
+                        alert('Failed to delete building. Please try again.');
+                    }
+                });
+
+                document.querySelectorAll('.pollution-btn').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const pollutionType = button.getAttribute('data-type');
+                        const increasePollution = pollutionType === "people smoke" || pollutionType === "factory";
+
+                        try {
+                            const response = await fetch(`${baseUrl}${buildingName}/pollution_event`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    pollution_type: pollutionType,
+                                    increase_pollution: increasePollution
+                                })
+                            });
+                            const result = await response.json();
+                            alert(`Pollution updated: ${result.pollution_percentage}%`);
+                            window.location.reload();
+                        } catch (error) {
+                            console.error('Failed to update pollution:', error);
+                            alert('Failed to update pollution. Please try again.');
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Failed to fetch building details:', error);
+            }
+        }
+
+        window.onload = () => {
+            fetchBuildingDetails();
+        };
+    </script>
+</body>
+</html>

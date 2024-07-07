@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Analysis</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #333;
+        }
+        table, canvas {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px 0;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        #back-to-list-link {
+            margin-top: 20px;
+            font-size: 1.2em;
+            text-decoration: none;
+            color: #333;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 20px;
+            transition: background 0.2s;
+        }
+        #back-to-list-link:hover {
+            background: #f4f4f4;
+        }
+        #toggle-view-button {
+            margin: 20px;
+            font-size: 1.2em;
+            text-decoration: none;
+            color: #fff;
+            background: #007bff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #toggle-view-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body class="turquoise-background">
+    <div class="container">
+        <h1>Building Air Pollution Analysis</h1>
+        <a id="back-to-list-link" href="/">Back to Building List</a>
+        <button id="toggle-view-button">Switch to Graph View</button>
+        <table id="analysisTable" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Event</th>
+                    <th>Pollution</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <canvas id="analysisChart" style="display: none;"></canvas>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+        const baseUrl = 'http://localhost:8000/api/buildings/';
+        let analysisData = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('#analysisTable')) {
+                fetchBuildingAnalysis();
+                document.getElementById('toggle-view-button').addEventListener('click', toggleView);
+            }
+        });
+
+        async function fetchBuildingAnalysis() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const buildingName = urlParams.get('name');
+
+                const response = await fetch(`${baseUrl}${buildingName}`);
+                const building = await response.json();
+                analysisData = building.analysis;
+                populateTable();
+            } catch (error) {
+                console.error('Failed to fetch building analysis:', error);
+            }
+        }
+
+        function populateTable() {
+            const analysisTableBody = document.querySelector('#analysisTable tbody');
+            analysisTableBody.innerHTML = '';
+
+            for (const [time, event] of Object.entries(analysisData)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${time}</td>
+                    <td>${event.event}</td>
+                    <td>${event.pollution}%</td>
+                `;
+                analysisTableBody.appendChild(row);
+            }
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('analysisChart').getContext('2d');
+            const labels = Object.keys(analysisData).map(time => new Date(time));
+            const pollutionLevels = Object.values(analysisData).map(event => event.pollution);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pollution Levels',
+                        data: pollutionLevels,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: false,
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                tooltipFormat: 'yyyy-MM-dd HH:mm',
+                                displayFormats: {
+                                    minute: 'HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Pollution Level (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleView() {
+            const table = document.getElementById('analysisTable');
+            const chart = document.getElementById('analysisChart');
+            const toggleButton = document.getElementById('toggle-view-button');
+
+            if (table.style.display === 'none') {
+                table.style.display = '';
+                chart.style.display = 'none';
+                toggleButton.textContent = 'Switch to Graph View';
+            } else {
+                table.style.display = 'none';
+                chart.style.display = '';
+                toggleButton.textContent = 'Switch to Table View';
+                renderChart();
+            }
+        }
+    </script>
+</body>
+</html>

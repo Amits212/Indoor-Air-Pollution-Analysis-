@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buildings</title>
+    <style>
+        /* Resetting default margins and paddings */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom right, #40E0D0, #f5f7fa);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3em;
+            color: #333;
+            margin-top: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #buildings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 30px;
+        }
+
+        .building {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            display: block;
+        }
+
+        .building h2 {
+            font-size: 1.8em;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .building p {
+            color: #666;
+            font-size: 1.1em;
+            margin: 8px 0;
+        }
+
+        .building:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #add-building-link {
+            margin-top: 30px;
+            font-size: 1.2em;
+            text-decoration: none;
+            color: #333;
+            background: #fff;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 12px 24px;
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #add-building-link:hover {
+            background: #f4f4f4;
+            border-color: #999;
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <h1>Buildings</h1>
+    <a id="add-building-link" href="create_building">Create Building</a>
+    <div id="buildings"></div>
+
+    <script>
+        const baseUrl = 'http://127.0.0.1:8000/api/buildings/';
+
+        async function fetchBuildings() {
+            try {
+                const response = await fetch(baseUrl);
+                const buildings = await response.json();
+                const buildingsDiv = document.getElementById('buildings');
+
+                if (buildingsDiv) {
+                    buildingsDiv.innerHTML = '';
+
+                    buildings.forEach(building => {
+                        const buildingElement = document.createElement('a');
+                        buildingElement.href = `building_details?name=${building.name}`;
+                        buildingElement.className = 'building';
+                        buildingElement.innerHTML = `
+                            <h2>${building.name}</h2>
+                            <p>Floors: ${building.floors.length}</p>
+                            <p>Pollution: ${building.pollution_percentage}%</p>
+                            <a href="building_details?name=${building.name}">View Details</a>
+                        `;
+                        buildingsDiv.appendChild(buildingElement);
+                    });
+                } else {
+                    console.error('Buildings container not found.');
+                }
+            } catch (error) {
+                console.error('Failed to fetch buildings:', error);
+            }
+        }
+
+        window.onload = fetchBuildings;
+    </script>
+</body>
+</html>

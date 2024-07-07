@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Building</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #333;
+        }
+        form {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+            width: 90%;
+            max-width: 600px;
+        }
+        form input, form button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 10px 20px 10px;
+            font-size: 1em;
+        }
+        form button {
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .floor {
+            margin-bottom: 20px;
+        }
+        .peopleContainer {
+            margin-top: 10px;
+        }
+        .person {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create Building</h1>
+    <form id="createBuildingForm" class="form">
+        <input type="text" id="name" name="name" placeholder="Building Name" required>
+        <input type="number" id="numFloors" name="numFloors" placeholder="Number of Floors" required>
+
+        <div id="floorsContainer"></div>
+
+        <button type="button" id="generateFloorsBtn" class="btn">Generate Floors</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+    <script>
+        const baseUrl = 'http://localhost:8000/api/buildings/';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const generateFloorsBtn = document.getElementById('generateFloorsBtn');
+
+            if (generateFloorsBtn) {
+                generateFloorsBtn.addEventListener('click', () => {
+                    const numFloors = document.getElementById('numFloors').value;
+                    const floorsContainer = document.getElementById('floorsContainer');
+                    floorsContainer.innerHTML = ''; // Clear previous content
+
+                    for (let i = 0; i < numFloors; i++) {
+                        const floorDiv = document.createElement('div');
+                        floorDiv.classList.add('floor');
+
+                        const floorTitle = document.createElement('h3');
+                        floorTitle.textContent = `Floor ${i + 1}`;
+
+                        const peopleContainer = document.createElement('div');
+                        peopleContainer.classList.add('peopleContainer');
+                        peopleContainer.setAttribute('data-floor-number', i + 1);
+
+                        const addPersonBtn = document.createElement('button');
+                        addPersonBtn.type = 'button';
+                        addPersonBtn.textContent = 'Add People';
+                        addPersonBtn.addEventListener('click', () => addPerson(peopleContainer));
+
+                        floorDiv.appendChild(floorTitle);
+                        floorDiv.appendChild(peopleContainer);
+                        floorDiv.appendChild(addPersonBtn);
+                        floorsContainer.appendChild(floorDiv);
+                    }
+                });
+            } else {
+                console.error('Element with ID "generateFloorsBtn" not found.');
+            }
+
+            if (document.getElementById('createBuildingForm')) {
+                document.getElementById('createBuildingForm').addEventListener('submit', createBuilding);
+            }
+        });
+
+        function addPerson(container) {
+            const personDiv = document.createElement('div');
+            personDiv.classList.add('person');
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.name = `floor${container.getAttribute('data-floor-number')}-personName`;
+            nameInput.placeholder = 'Name';
+
+            const ageInput = document.createElement('input');
+            ageInput.type = 'number';
+            ageInput.name = `floor${container.getAttribute('data-floor-number')}-personAge`;
+            ageInput.placeholder = 'Age';
+
+            const smokingInput = document.createElement('input');
+            smokingInput.type = 'checkbox';
+            smokingInput.name = `floor${container.getAttribute('data-floor-number')}-personSmoking`;
+            const smokingLabel = document.createElement('label');
+            smokingLabel.textContent = 'Smoking';
+
+            personDiv.appendChild(nameInput);
+            personDiv.appendChild(ageInput);
+            personDiv.appendChild(smokingInput);
+            personDiv.appendChild(smokingLabel);
+            container.appendChild(personDiv);
+        }
+
+        async function createBuilding(event) {
+            event.preventDefault();
+            console.log('Form submitted');
+
+            const formData = new FormData(event.target);
+            const name = formData.get('name');
+            const numFloors = formData.get('numFloors');
+            const floors = [];
+
+            for (let i = 0; i < numFloors; i++) {
+                const floorNumber = i + 1;
+                const people = [];
+
+                const peopleContainer = document.querySelector(`[data-floor-number="${floorNumber}"]`);
+                if (peopleContainer) {
+                    peopleContainer.querySelectorAll('.person').forEach(personDiv => {
+                        const nameInput = personDiv.querySelector(`[name^="floor${floorNumber}-personName"]`);
+                        const ageInput = personDiv.querySelector(`[name^="floor${floorNumber}-personAge"]`);
+                        const smokingInput = personDiv.querySelector(`[name^="floor${floorNumber}-personSmoking"]`);
+
+                        people.push({
+                            name: nameInput.value,
+                            age: parseInt(ageInput.value),
+                            is_smoking: smokingInput.checked
+                        });
+                    });
+                }
+
+                floors.push({
+                    number: floorNumber,
+                    peoples: people
+                });
+            }
+
+            const data = { name, floors };
+
+            console.log('Data to be sent:', data);
+
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    console.log('Building created successfully');
+                    window.location.href = '/';
+                } else {
+                    console.error('Failed to create building', response);
+                }
+            } catch (error) {
+                console.error('Failed to create building:', error);
+            }
+        }
+    </script>
+</body>
+</html>
