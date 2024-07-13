@@ -3,7 +3,7 @@ from bson import ObjectId
 from datetime import datetime
 from database import buildings_collection
 from models import Building
-
+from sms_config import send_sms
 router = APIRouter()
 
 @router.get('/api/buildings/')
@@ -89,5 +89,7 @@ async def pollution_event(
     building.make_analysis(time=datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), event=event)
 
     await buildings_collection.update_one({"name": building_name}, {"$set": building.dict()})
+    if building.pollution_percentage > 20:
+        send_sms(message=f'Pollution in building: {building.name} exceed 20%.')
 
     return building.dict()

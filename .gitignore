@@ -2,3 +2,4 @@ include/
 Lib/
 scripts/
 pyvenv.cfg
+backend/.env
